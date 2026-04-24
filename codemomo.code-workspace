@@ -8,15 +8,15 @@
 		"python-envs.defaultEnvManager": "ms-python.python:system"
 		,
 		"files.exclude": {
-			// "**/.git": true,
-			// "**/.vscode": true,
-			// "**/.venv": true,
-			// "sample/": true,
-			// "advanced/": true,
-			// // "docs/": true,
-			// "v1/": true,
-			// "**/__pycache__/": true,
-			// "**/__init__.py": true,
+			"**/.git": true,
+			"**/.vscode": true,
+			"**/.venv": true,
+			"sample/": true,
+			"advanced/": true,
+			// "docs/": true,
+			"v1/": true,
+			"**/__pycache__/": true,
+			"**/__init__.py": true,
 		}
 	}
 }
