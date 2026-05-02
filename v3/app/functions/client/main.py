@@ -52,8 +52,9 @@ class Client:
                     data = stream_send.read(1024, exception_on_overflow=False)
                     if self.is_speaking:
                         self.socket_audio_send.sendto(data, (self.ip_du_serveur, self.port_audio))
-                except:
-                    pass
+                        print(f"[AUDIO SEND] Envoi audio au serveur")
+                except Exception as e:
+                    print(f"Erreur envoi audio: {e}")
 
         def recevoir_audio():
             try:
@@ -63,8 +64,11 @@ class Client:
                         break
                     if not self.is_speaking:
                         stream_recv.write(data)
-            except:
-                pass
+                        print(f"[AUDIO RECV] Audio reçu et joué")
+                    else:
+                        print(f"[AUDIO RECV] Audio reçu mais rejeté (en train de parler)")
+            except Exception as e:
+                print(f"Erreur réception audio: {e}")
             finally:
                 stream_send.stop_stream()
                 stream_send.close()

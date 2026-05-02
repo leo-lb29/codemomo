@@ -47,8 +47,10 @@ class Serveur:
                 if not data:
                     continue
                 client_id = self._get_client_id_by_addr(addr)
+                print(f"[AUDIO] Reçu de {addr}, client_id={client_id}, speaker_id={self.speaker_id}")
                 if client_id == self.speaker_id and not self.host_is_speaking:
                     self.socket_audio_send.sendto(data, ("127.0.0.1", 5002))
+                    print(f"[AUDIO] Relayé vers broadcast")
             except Exception as e:
                 print(f"Erreur relay audio: {e}")
 
