@@ -71,7 +71,7 @@ class Client:
     def envoyer_audio(self):
         while self.sending_audio:
             try:
-                data = self.stream_out.read(CHUNK, exception_on_overflow=False)
+                data = self.stream_out.read(CHUNK, exception_on_overflow=False) # type: ignore
                 self.socket_audio_in.sendto(data, (self.ip_du_serveur, self.port_audio_in))
             except Exception as e:
                 if self.sending_audio:

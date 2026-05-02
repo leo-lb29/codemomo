@@ -58,6 +58,10 @@ class Serveur:
         while True:
             conn, addr = self.socket.accept()
             print(f"Connexion reçue de {addr}")
+            threading.Thread(target=self._handle_client, args=(conn, addr), daemon=True).start()
+
+    def _handle_client(self, conn, addr):
+        try:
             data = conn.recv(1024).decode()
             print(f"Message reçu: {data}")
 
@@ -69,8 +73,23 @@ class Serveur:
                     {"id": client_id, "addr": addr, "prenom": prenom, "socket": conn})
                 print(f"Prénom: {prenom}")
                 print(f"Clients connectés: {[c['prenom'] for c in self.clients]}")
+
+                while True:
+                    try:
+                        data = conn.recv(1024).decode()
+                        if data == "REQUEST_TO_SPEAK":
+                            self.clients_demandes_parole.append((client_id, prenom))
+                            print(f"Demande de parole: {prenom}")
+                    except:
+                        break
+
+                self.clients = [c for c in self.clients if c["id"] != client_id]
+                self.clients_demandes_parole = [(cid, p) for cid, p in self.clients_demandes_parole if cid != client_id]
+                print(f"Client {prenom} déconnecté")
             else:
                 conn.close()
+        except Exception as e:
+            print(f"Erreur client: {e}")
 
     def on_demande_la_parole(self):
         pass
@@ -79,6 +98,7 @@ class Serveur:
         if self.clients and any(c["id"] == id_client for c in self.clients):
             client = next(c for c in self.clients if c["id"] == id_client)
             self._envoyer_message(client, "SPEAK_ACCEPTED")
+            self.clients_demandes_parole = [(cid, p) for cid, p in self.clients_demandes_parole if cid != id_client]
         self.donner_la_parole(id_client)
 
     def refuser_parole(self, id_client):
@@ -90,6 +110,7 @@ class Serveur:
         for client in self.clients:
             self._envoyer_message(client, "RESET_SPEAK")
         self._nettoyer_clients_disconnected()
+        self.clients_demandes_parole = []
         self.host_is_speaking = False
         self.speaker_id = None
 
