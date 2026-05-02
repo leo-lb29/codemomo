@@ -9,7 +9,7 @@ from textual.containers import Vertical as VerticalContainer
 from textual.widgets import Static, Button as DialogButton
 
 from app.functions.server.main import Serveur
-from config import PORT_AUDIO_OUT, BROADCAST_ADDR
+from config import PORT_AUDIO_OUT, PORT_AUDIO_IN, BROADCAST_ADDR
 
 
 class ConfirmSpeakScreen(Screen):
@@ -87,6 +87,9 @@ class Host(App):
     def __init__(self):
         super().__init__()
         self.serveur = Serveur()
+        self.audio = None
+        self.stream_out = None
+        self.sending_audio = False
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -124,6 +127,40 @@ class Host(App):
     def add_log(self, text: str):
         self.query_one(RichLog).write(text)
 
+    def setup_host_audio(self):
+        try:
+            if not self.audio:
+                self.audio = pyaudio.PyAudio()
+            self.stream_out = self.audio.open(
+                format=pyaudio.paInt16,
+                channels=1,
+                rate=44100,
+                input=True,
+                frames_per_buffer=1024
+            )
+            self.sending_audio = True
+            threading.Thread(target=self._envoyer_audio_host, daemon=True).start()
+        except Exception as e:
+            print(f"Erreur setup audio host: {e}")
+
+    def _envoyer_audio_host(self):
+        socket_audio_in = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, proto=socket.IPPROTO_UDP)
+        while self.sending_audio:
+            try:
+                data = self.stream_out.read(1024, exception_on_overflow=False)
+                socket_audio_in.sendto(data, ("127.0.0.1", PORT_AUDIO_IN))
+            except Exception as e:
+                if self.sending_audio:
+                    pass
+                break
+
+    def arreter_audio_host(self):
+        self.sending_audio = False
+        if self.stream_out:
+            self.stream_out.stop_stream()
+            self.stream_out.close()
+            self.stream_out = None
+
     def update_tables(self):
         self.refresh_clients_table()
         self.refresh_demandes_table()
@@ -155,17 +192,20 @@ class Host(App):
                 self.query_one("#btn_host_speak",
                                Button).label = "Prendre la parole"
                 self.serveur.host_stop_speaking()
+                self.arreter_audio_host()
             else:
                 self.query_one("#btn_host_speak", Button).variant = "success"
                 self.query_one("#btn_host_speak",
                                Button).label = "Arreter de parler"
                 self.serveur.host_start_speaking()
+                self.setup_host_audio()
 
         elif event.button.id == "btn_mute_all":
             self.query_one("#btn_host_speak", Button).variant = "default"
             self.query_one("#btn_host_speak",
                            Button).label = "Prendre la parole"
             self.serveur.reset_speak()
+            self.arreter_audio_host()
 
         elif event.button.id == "btn_quit":
             self.exit()
