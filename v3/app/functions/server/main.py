@@ -8,8 +8,11 @@ class Serveur:
     def __init__(self):
         self.socket = socket_module.socket(
             socket_module.AF_INET, socket_module.SOCK_STREAM, proto=socket_module.IPPROTO_TCP)
-        self.socket_audio = socket_module.socket(
+        self.socket_audio_recv = socket_module.socket(
             socket_module.AF_INET, socket_module.SOCK_DGRAM, proto=socket_module.IPPROTO_UDP)
+        self.socket_audio_send = socket_module.socket(
+            socket_module.AF_INET, socket_module.SOCK_DGRAM, proto=socket_module.IPPROTO_UDP)
+        self.socket_audio_send.setsockopt(socket_module.SOL_SOCKET, socket_module.SO_BROADCAST, 1)
         self.port_control = PORT_CONTROL
         self.port_audio = PORT_AUDIO
         self.clients = []
@@ -20,11 +23,13 @@ class Serveur:
         self.client_addresses = {}
         self.client_udp_addresses = {}
         self.host_is_speaking = False
+        self.audio_buffer = {}
 
     def demarrer_serveur(self):
+        self.socket_audio_recv.bind(("0.0.0.0", self.port_audio))
         self.socket.bind(("0.0.0.0", self.port_control))
         self.socket.listen(5)
-        self.socket_audio.bind(("0.0.0.0", self.port_audio))
+        threading.Thread(target=self._handle_audio_relay, daemon=True).start()
         while True:
             try:
                 conn, addr = self.socket.accept()
@@ -33,6 +38,26 @@ class Serveur:
                                  args=(conn, addr), daemon=True).start()
             except Exception as e:
                 print(f"Erreur lors de l'acceptation: {e}")
+
+
+    def _handle_audio_relay(self):
+        while True:
+            try:
+                data, addr = self.socket_audio_recv.recvfrom(1024)
+                if not data:
+                    continue
+                client_id = self._get_client_id_by_addr(addr)
+                if client_id == self.speaker_id and not self.host_is_speaking:
+                    self.socket_audio_send.sendto(data, ("255.255.255.255", 5002))
+            except Exception as e:
+                print(f"Erreur relay audio: {e}")
+
+    def _get_client_id_by_addr(self, addr):
+        with self.lock:
+            for c, a, cid, p in self.clients:
+                if a == addr:
+                    return cid
+        return None
 
     def _handle_client(self, conn, addr):
         client_id = None

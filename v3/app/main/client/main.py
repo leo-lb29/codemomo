@@ -78,9 +78,8 @@ class Client(App):
                 self.update_status(False)
             else:
 
-                # type: ignore
                 self.query_one(
-                    "#error-prenom").update("Veuillez entrer votre prénom")
+                    "#error-prenom").update("Veuillez entrer votre prénom")           # type: ignore
            # type: ignore
         elif event.button.id == "btn_quit":
             self.exit()

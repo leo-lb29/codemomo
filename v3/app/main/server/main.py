@@ -125,49 +125,31 @@ class Host(App):
         self.query_one(RichLog).write(text)
 
     def setup_audio_broadcast(self):
-        socket_signal = socket.socket(
+        import pyaudio as pa
+        socket_broadcast = socket.socket(
             socket.AF_INET, socket.SOCK_DGRAM, proto=socket.IPPROTO_UDP)
-        socket_signal.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        capture_micro = pyaudio.PyAudio()
-        stream = capture_micro.open(
-            format=pyaudio.paInt16,
+        socket_broadcast.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        audio = pa.PyAudio()
+        stream = audio.open(
+            format=pa.paInt16,
             channels=1,
             rate=44100,
             input=True,
             frames_per_buffer=1024
         )
 
-        def envoyer_audio():
+        def envoyer_audio_host():
             while True:
-                data = stream.read(512, exception_on_overflow=False)
-                socket_signal.sendto(data, ("192.168.1.255", 5002))
+                try:
+                    if self.serveur.host_is_speaking:
+                        data = stream.read(1024, exception_on_overflow=False)
+                        socket_broadcast.sendto(data, ("192.168.1.255", 5002))
+                    else:
+                        stream.read(1024, exception_on_overflow=False)
+                except:
+                    pass
 
-        threading.Thread(target=envoyer_audio, daemon=True).start()
-
-    # def setup_audio_receiver(self):
-    #     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    #     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    #     sock.bind(("0.0.0.0", 5002))
-    #     audio = pyaudio.PyAudio()
-    #     stream = audio.open(format=pyaudio.paInt16, channels=1,
-    #                         rate=44100, output=True, frames_per_buffer=1024)
-
-    #     def recevoir_audio():
-    #         try:
-    #             while True:
-    #                 data, addr = sock.recvfrom(1024)
-    #                 if not data:
-    #                     break
-    #                 stream.write(data)
-    #         except KeyboardInterrupt:
-    #             pass
-    #         finally:
-    #             sock.close()
-    #             stream.stop_stream()
-    #             stream.close()
-    #             audio.terminate()
-
-    #     threading.Thread(target=recevoir_audio, daemon=True).start()
+        threading.Thread(target=envoyer_audio_host, daemon=True).start()
 
     def update_tables(self):
         self.refresh_clients_table()
@@ -191,15 +173,16 @@ class Host(App):
     # --- Événements UI ---
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "btn_host_speak":
-            if self.serveur.speaker_id is not None:
+            if self.serveur.host_is_speaking:
                 self.query_one("#btn_host_speak", Button).variant = "default"
                 self.query_one("#btn_host_speak",
                                Button).label = "Prendre la parole"
+                self.serveur.host_stop_speaking()
             else:
-                # Commencer à parler
                 self.query_one("#btn_host_speak", Button).variant = "success"
                 self.query_one("#btn_host_speak",
                                Button).label = "Arreter de parler"
+                self.serveur.host_start_speaking()
 
         elif event.button.id == "btn_mute_all":
             self.query_one("#btn_host_speak", Button).variant = "default"

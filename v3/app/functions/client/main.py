@@ -14,12 +14,17 @@ class Client:
         self.ip_du_serveur = ip_du_serveur
         self.socket = socket_module.socket(
             socket_module.AF_INET, socket_module.SOCK_STREAM, proto=socket_module.IPPROTO_TCP)
-        self.socket_audio = socket_module.socket(
+        self.socket_audio_send = socket_module.socket(
             socket_module.AF_INET, socket_module.SOCK_DGRAM, proto=socket_module.IPPROTO_UDP)
+        self.socket_audio_recv = socket_module.socket(
+            socket_module.AF_INET, socket_module.SOCK_DGRAM, proto=socket_module.IPPROTO_UDP)
+        self.socket_audio_recv.setsockopt(socket_module.SOL_SOCKET, socket_module.SO_REUSEADDR, 1)
         self.prenom = None
         self.connected = False
         self.app_ref: Any = None
-        self.setup_audio_receiver()
+        self.is_speaking = False
+        self.client_id = None
+        self.setup_audio()
 
     def send_message(self, message):
         try:
@@ -31,27 +36,43 @@ class Client:
         except Exception as e:
             print(f"Erreur lors de l'envoi: {e}")
 
-    def setup_audio_receiver(self):
-        self.socket_audio.setsockopt(socket_module.SOL_SOCKET, socket_module.SO_REUSEADDR, 1)
-        self.socket_audio.bind(("0.0.0.0", 5002))
+    def setup_audio(self):
+        self.socket_audio_recv.setsockopt(socket_module.SOL_SOCKET, socket_module.SO_REUSEADDR, 1)
+        self.socket_audio_recv.bind(("0.0.0.0", 5002))
         audio = pyaudio.PyAudio()
-        stream = audio.open(format=pyaudio.paInt16, channels=1,
-                            rate=44100, output=True, frames_per_buffer=1024)
+
+        stream_send = audio.open(format=pyaudio.paInt16, channels=1,
+                                 rate=44100, input=True, frames_per_buffer=1024)
+        stream_recv = audio.open(format=pyaudio.paInt16, channels=1,
+                                 rate=44100, output=True, frames_per_buffer=1024)
+
+        def envoyer_audio():
+            while True:
+                try:
+                    data = stream_send.read(1024, exception_on_overflow=False)
+                    if self.is_speaking:
+                        self.socket_audio_send.sendto(data, (self.ip_du_serveur, self.port_audio))
+                except:
+                    pass
 
         def recevoir_audio():
             try:
                 while True:
-                    data, addr = self.socket_audio.recvfrom(1024)
+                    data, addr = self.socket_audio_recv.recvfrom(1024)
                     if not data:
                         break
-                    stream.write(data)
-            except KeyboardInterrupt:
+                    if not self.is_speaking:
+                        stream_recv.write(data)
+            except:
                 pass
             finally:
-                stream.stop_stream()
-                stream.close()
+                stream_send.stop_stream()
+                stream_send.close()
+                stream_recv.stop_stream()
+                stream_recv.close()
                 audio.terminate()
 
+        threading.Thread(target=envoyer_audio, daemon=True).start()
         threading.Thread(target=recevoir_audio, daemon=True).start()
 
     def se_connecter(self, prenom):
@@ -63,7 +84,9 @@ class Client:
         while True:
             try:
                 data = self.socket.recv(1024).decode()
-                if data == "SPEAKER:1":
+                if data.startswith("CLIENT_ID:"):
+                    self.client_id = int(data.split(":")[1])
+                elif data == "SPEAKER:1":
                     self.parler()
                 elif data == "SPEAKER:0":
                     self.arreter_de_parler()
@@ -112,6 +135,7 @@ class Client:
     # receive_message
     def arreter_de_parler(self):
         # SPEAKER:0
+        self.is_speaking = False
         print("Vous avez perdu la parole.")
         if self.app_ref:
             self.bouton_demander_retourner_style_defaut()
@@ -121,6 +145,7 @@ class Client:
     # receive_message
     def parler(self):
         # SPEAKER:1
+        self.is_speaking = True
         print("Vous avez la parole !")
         if self.app_ref:
             self.bouton_demander_style_vous_parler()
