@@ -1,4 +1,6 @@
 import threading
+import socket
+import pyaudio
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical
 from textual.widgets import Button, DataTable, Header, RichLog
@@ -7,6 +9,7 @@ from textual.containers import Vertical as VerticalContainer
 from textual.widgets import Static, Button as DialogButton
 
 from app.functions.server.main import Serveur
+
 
 
 class ConfirmSpeakScreen(Screen):
@@ -115,10 +118,57 @@ class Host(App):
         threading.Thread(
             target=self.serveur.demarrer_serveur, daemon=True).start()
 
+        self.setup_audio_broadcast()
+        self.setup_audio_receiver()
         self.set_interval(0.5, self.update_tables)
 
     def add_log(self, text: str):
         self.query_one(RichLog).write(text)
+
+    def setup_audio_broadcast(self):
+        socket_signal = socket.socket(
+            socket.AF_INET, socket.SOCK_DGRAM, proto=socket.IPPROTO_UDP)
+        socket_signal.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        capture_micro = pyaudio.PyAudio()
+        stream = capture_micro.open(
+            format=pyaudio.paInt16,
+            channels=1,
+            rate=44100,
+            input=True,
+            frames_per_buffer=1024
+        )
+
+        def envoyer_audio():
+            while True:
+                data = stream.read(512, exception_on_overflow=False)
+                socket_signal.sendto(data, ("192.168.1.255", 5002))
+
+        threading.Thread(target=envoyer_audio, daemon=True).start()
+
+    def setup_audio_receiver(self):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sock.bind(("0.0.0.0", 5000))
+        audio = pyaudio.PyAudio()
+        stream = audio.open(format=pyaudio.paInt16, channels=1,
+                            rate=44100, output=True, frames_per_buffer=1024)
+
+        def recevoir_audio():
+            try:
+                while True:
+                    data, addr = sock.recvfrom(1024)
+                    if not data:
+                        break
+                    stream.write(data)
+            except KeyboardInterrupt:
+                pass
+            finally:
+                sock.close()
+                stream.stop_stream()
+                stream.close()
+                audio.terminate()
+
+        threading.Thread(target=recevoir_audio, daemon=True).start()
 
     def update_tables(self):
         self.refresh_clients_table()

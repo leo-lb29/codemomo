@@ -1,8 +1,10 @@
 import socket as socket_module
 import threading
+import pyaudio
 from textual.widgets import Button
 from typing import Any
 from config import PORT_AUDIO, PORT_CONTROL
+
 
 
 class Client:
@@ -17,6 +19,7 @@ class Client:
         self.prenom = None
         self.connected = False
         self.app_ref: Any = None
+        self.setup_audio_receiver()
 
     def send_message(self, message):
         try:
@@ -27,6 +30,29 @@ class Client:
             self.socket.send(message_encoded)
         except Exception as e:
             print(f"Erreur lors de l'envoi: {e}")
+
+    def setup_audio_receiver(self):
+        self.socket_audio.setsockopt(socket_module.SOL_SOCKET, socket_module.SO_REUSEADDR, 1)
+        self.socket_audio.bind(("0.0.0.0", 5002))
+        audio = pyaudio.PyAudio()
+        stream = audio.open(format=pyaudio.paInt16, channels=1,
+                            rate=44100, output=True, frames_per_buffer=1024)
+
+        def recevoir_audio():
+            try:
+                while True:
+                    data, addr = self.socket_audio.recvfrom(1024)
+                    if not data:
+                        break
+                    stream.write(data)
+            except KeyboardInterrupt:
+                pass
+            finally:
+                stream.stop_stream()
+                stream.close()
+                audio.terminate()
+
+        threading.Thread(target=recevoir_audio, daemon=True).start()
 
     def se_connecter(self, prenom):
         self.prenom = prenom
