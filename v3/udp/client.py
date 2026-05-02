@@ -4,8 +4,8 @@ import pyaudio
 # Client UDP
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, proto=socket.IPPROTO_UDP)
 sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-sock.bind(("0.0.0.0", 5002))
-print("Client UDP en attente sur 0.0.0.0:5002")
+sock.bind(("192.168.1.156", 5002))
+print("Client UDP en attente sur 192.168.1.156:5002")
 
 audio = pyaudio.PyAudio()
 stream = audio.open(format=pyaudio.paInt16, channels=1,
