@@ -75,7 +75,7 @@ class Client:
         while self.receiving_audio:
             try:
                 data, addr = self.socket_audio_out.recvfrom(65535)
-                if data and self.stream_in:
+                if data and self.stream_in and not self.sending_audio:
                     self.stream_in.write(data)
             except Exception as e:
                 if self.receiving_audio:
