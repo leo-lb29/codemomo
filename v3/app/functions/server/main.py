@@ -26,6 +26,25 @@ class Serveur:
         self.host_is_speaking = False
         self.client_id_counter = 0
 
+    def _nettoyer_clients_disconnected(self):
+        self.clients = [c for c in self.clients if self._socket_connected(c["socket"])]
+
+    def _socket_connected(self, sock):
+        try:
+            sock.getpeername()
+            return True
+        except:
+            return False
+
+    def _envoyer_message(self, client, message_text):
+        try:
+            message = message_text.encode()
+            client["socket"].send(message)
+            print(f"Message '{message_text}' envoyé à {client['prenom']}")
+        except (ConnectionAbortedError, ConnectionResetError, BrokenPipeError):
+            if client in self.clients:
+                self.clients.remove(client)
+
     def demarrer_serveur(self):
         self.socket.bind(("0.0.0.0", self.port_control))
         self.socket.listen(5)
@@ -53,24 +72,18 @@ class Serveur:
     def accepter_parole(self, id_client):
         if self.clients and any(c["id"] == id_client for c in self.clients):
             client = next(c for c in self.clients if c["id"] == id_client)
-            message = "SPEAK_ACCEPTED".encode()
-            client["socket"].send(message)
-            print(f"Message 'SPEAK_ACCEPTED' envoyé à {client['prenom']}")
-
+            self._envoyer_message(client, "SPEAK_ACCEPTED")
         self.donner_la_parole(id_client)
 
     def refuser_parole(self, id_client):
         if self.clients and any(c["id"] == id_client for c in self.clients):
             client = next(c for c in self.clients if c["id"] == id_client)
-            message = "SPEAK_REJECTED".encode()
-            client["socket"].send(message)
-            print(f"Message 'SPEAK_REJECTED' envoyé à {client['prenom']}")
+            self._envoyer_message(client, "SPEAK_REJECTED")
 
     def reset_speak(self):
         for client in self.clients:
-            message = "RESET_SPEAK".encode()
-            client["socket"].send(message)
-            print(f"Message 'RESET_SPEAK' envoyé à {client['prenom']}")
+            self._envoyer_message(client, "RESET_SPEAK")
+        self._nettoyer_clients_disconnected()
         self.host_is_speaking = False
         self.speaker_id = None
 
@@ -86,18 +99,14 @@ class Serveur:
     def retirer_la_parole(self, id_client):
         if self.clients and any(c["id"] == id_client for c in self.clients):
             client = next(c for c in self.clients if c["id"] == id_client)
-            message = "SPEAKER:0".encode()
-            client["socket"].send(message)
-            print(f"Message 'SPEAKER:0' envoyé à {client['prenom']}")
+            self._envoyer_message(client, "SPEAKER:0")
         self.speaker_id = None
 
     def donner_la_parole(self, id_client):
         self.speaker_id = id_client
         if self.clients and any(c["id"] == id_client for c in self.clients):
             client = next(c for c in self.clients if c["id"] == id_client)
-            message = "SPEAKER:1".encode()
-            client["socket"].send(message)
-            print(f"Message 'SPEAKER:1' envoyé à {client['prenom']}")
+            self._envoyer_message(client, "SPEAKER:1")
 
     def host_start_speaking(self):
         self.host_is_speaking = True
