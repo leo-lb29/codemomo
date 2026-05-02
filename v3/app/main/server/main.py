@@ -9,7 +9,7 @@ from textual.containers import Vertical as VerticalContainer
 from textual.widgets import Static, Button as DialogButton
 
 from app.functions.server.main import Serveur
-
+from config import PORT_AUDIO, BROADCAST_ADDR
 
 
 class ConfirmSpeakScreen(Screen):
@@ -93,7 +93,7 @@ class Host(App):
         with Horizontal(id="layout-principal"):
             with Vertical(id="menu-gauche"):
                 yield Button("Prendre la parole", id="btn_host_speak")
-                yield Button("Couper le micros", id="btn_mute_all")
+                yield Button("Couper le micro", id="btn_mute_all")
                 yield Button("Quitter", id="btn_quit")
 
             with Vertical(id="zone-droite"):
@@ -126,9 +126,9 @@ class Host(App):
 
     def setup_audio_broadcast(self):
         import pyaudio as pa
-        socket_broadcast = socket.socket(
+        socket_audio = socket.socket(
             socket.AF_INET, socket.SOCK_DGRAM, proto=socket.IPPROTO_UDP)
-        socket_broadcast.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        socket_audio.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         audio = pa.PyAudio()
         stream = audio.open(
             format=pa.paInt16,
@@ -141,11 +141,8 @@ class Host(App):
         def envoyer_audio_host():
             while True:
                 try:
-                    if self.serveur.host_is_speaking:
-                        data = stream.read(1024, exception_on_overflow=False)
-                        socket_broadcast.sendto(data, ("127.0.0.1", 5002))
-                    else:
-                        stream.read(1024, exception_on_overflow=False)
+                    data = stream.read(1024, exception_on_overflow=False)
+                    socket_audio.sendto(data, (BROADCAST_ADDR, PORT_AUDIO))
                 except:
                     pass
 
@@ -158,10 +155,15 @@ class Host(App):
     def refresh_clients_table(self):
         table_client = self.query_one('#liste-clients', DataTable)
         table_client.clear()
-        for conn, addr, client_id, prenom in self.serveur.clients:
-            status = "[+] le client parle" if self.serveur.speaker_id == client_id else "[-] le client est en écoute"
-            table_client.add_row(str(client_id), prenom, str(
-                addr[0]), status, key=str(client_id))
+        for client in self.serveur.clients:
+            status = "[+] le client parle" if self.serveur.speaker_id == client["id"] else "[-] le client est en écoute"
+            table_client.add_row(
+                str(client["id"]),
+                client["prenom"],
+                str(client["addr"][0]),
+                status,
+                key=str(client["id"])
+            )
 
     def refresh_demandes_table(self):
         table_demandes = self.query_one('#liste-demandes', DataTable)
@@ -170,7 +172,6 @@ class Host(App):
             table_demandes.add_row(
                 str(client_id), prenom, "", key=str(client_id))
 
-    # --- Événements UI ---
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "btn_host_speak":
             if self.serveur.host_is_speaking:
@@ -192,7 +193,6 @@ class Host(App):
 
         elif event.button.id == "btn_quit":
             self.exit()
-        pass
 
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         if event.control.id == "liste-demandes":

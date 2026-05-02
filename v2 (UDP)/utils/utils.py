@@ -70,7 +70,6 @@ def _handle_control_message(app, msg):
 def _handle_audio_message(data):
     QUEUE_AUDIO.put(data)
 
-
 def mic_worker(sock, app):
     stream = _create_input_stream()
     try:
