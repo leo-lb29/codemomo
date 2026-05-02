@@ -9,7 +9,7 @@ from textual.containers import Vertical as VerticalContainer
 from textual.widgets import Static, Button as DialogButton
 
 from app.functions.server.main import Serveur
-from config import PORT_AUDIO, BROADCAST_ADDR
+from config import PORT_AUDIO_OUT, BROADCAST_ADDR
 
 
 class ConfirmSpeakScreen(Screen):
@@ -118,35 +118,11 @@ class Host(App):
         threading.Thread(
             target=self.serveur.demarrer_serveur, daemon=True).start()
 
-        self.setup_audio_broadcast()
+        self.serveur.demarrer_reception_audio()
         self.set_interval(0.5, self.update_tables)
 
     def add_log(self, text: str):
         self.query_one(RichLog).write(text)
-
-    def setup_audio_broadcast(self):
-        import pyaudio as pa
-        socket_audio = socket.socket(
-            socket.AF_INET, socket.SOCK_DGRAM, proto=socket.IPPROTO_UDP)
-        socket_audio.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        audio = pa.PyAudio()
-        stream = audio.open(
-            format=pa.paInt16,
-            channels=1,
-            rate=44100,
-            input=True,
-            frames_per_buffer=1024
-        )
-
-        def envoyer_audio_host():
-            while True:
-                try:
-                    data = stream.read(1024, exception_on_overflow=False)
-                    socket_audio.sendto(data, (BROADCAST_ADDR, PORT_AUDIO))
-                except:
-                    pass
-
-        threading.Thread(target=envoyer_audio_host, daemon=True).start()
 
     def update_tables(self):
         self.refresh_clients_table()

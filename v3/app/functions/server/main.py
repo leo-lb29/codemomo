@@ -9,22 +9,28 @@ import socket as socket_module
 import time
 
 PORT_CONTROL = 5000
-PORT_AUDIO = 5002
+PORT_AUDIO_OUT = 5002
+PORT_AUDIO_IN = 5003
 
 
 class Serveur:
     def __init__(self):
         self.socket = socket_module.socket(
             socket_module.AF_INET, socket_module.SOCK_STREAM, proto=socket_module.IPPROTO_TCP)
-        self.socket_audio = socket_module.socket(
+        self.socket_audio_out = socket_module.socket(
+            socket_module.AF_INET, socket_module.SOCK_DGRAM, proto=socket_module.IPPROTO_UDP)
+        self.socket_audio_in = socket_module.socket(
             socket_module.AF_INET, socket_module.SOCK_DGRAM, proto=socket_module.IPPROTO_UDP)
         self.port_control = PORT_CONTROL
-        self.port_audio = PORT_AUDIO
+        self.port_audio_out = PORT_AUDIO_OUT
+        self.port_audio_in = PORT_AUDIO_IN
         self.clients = []
         self.clients_demandes_parole = []
         self.speaker_id = None
         self.host_is_speaking = False
         self.client_id_counter = 0
+        self.audio_queue = []
+        self.receiving_audio = False
 
     def _nettoyer_clients_disconnected(self):
         self.clients = [c for c in self.clients if self._socket_connected(c["socket"])]
@@ -115,6 +121,26 @@ class Serveur:
     def host_stop_speaking(self):
         self.host_is_speaking = False
         self.speaker_id = None
+
+    def demarrer_reception_audio(self):
+        try:
+            self.socket_audio_in.setsockopt(socket_module.SOL_SOCKET, socket_module.SO_REUSEADDR, 1)
+            self.socket_audio_in.bind(("0.0.0.0", self.port_audio_in))
+            self.receiving_audio = True
+            threading.Thread(target=self._recevoir_et_rediffuser_audio, daemon=True).start()
+        except Exception as e:
+            print(f"Erreur lors du démarrage de la réception audio: {e}")
+
+    def _recevoir_et_rediffuser_audio(self):
+        self.socket_audio_out.setsockopt(socket_module.SOL_SOCKET, socket_module.SO_BROADCAST, 1)
+        while self.receiving_audio:
+            try:
+                data, addr = self.socket_audio_in.recvfrom(65535)
+                if data:
+                    self.socket_audio_out.sendto(data, ("192.168.1.255", self.port_audio_out))
+            except Exception as e:
+                if self.receiving_audio:
+                    pass
 
 
 

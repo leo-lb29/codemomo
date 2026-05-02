@@ -1,7 +1,7 @@
 import socket
 import pyaudio
 
-# Client UDP
+# Client UDP - écoute l'audio diffusé en broadcast par le serveur
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, proto=socket.IPPROTO_UDP)
 sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 sock.bind(("0.0.0.0", 5002))

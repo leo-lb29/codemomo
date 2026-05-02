@@ -3,29 +3,33 @@ import threading
 import pyaudio
 from textual.widgets import Button
 from typing import Any
-from config import PORT_AUDIO, PORT_CONTROL, CHUNK, FORMAT, CHANNELS, RATE
+from config import PORT_AUDIO_OUT, PORT_AUDIO_IN, PORT_CONTROL, CHUNK, FORMAT, CHANNELS, RATE
 
 
 class Client:
     def __init__(self, ip_du_serveur="192.168.10.1"):
         self.port_control = PORT_CONTROL
-        self.port_audio = PORT_AUDIO
+        self.port_audio_out = PORT_AUDIO_OUT
+        self.port_audio_in = PORT_AUDIO_IN
         self.ip_du_serveur = ip_du_serveur
         self.socket = socket_module.socket(socket_module.AF_INET, socket_module.SOCK_STREAM, proto=socket_module.IPPROTO_TCP)
-        self.socket_audio = socket_module.socket(socket_module.AF_INET, socket_module.SOCK_DGRAM, proto=socket_module.IPPROTO_UDP)
+        self.socket_audio_out = socket_module.socket(socket_module.AF_INET, socket_module.SOCK_DGRAM, proto=socket_module.IPPROTO_UDP)
+        self.socket_audio_in = socket_module.socket(socket_module.AF_INET, socket_module.SOCK_DGRAM, proto=socket_module.IPPROTO_UDP)
         self.prenom = None
         self.connected = False
         self.app_ref: Any = None
         self.audio = None
-        self.stream = None
+        self.stream_in = None
+        self.stream_out = None
         self.receiving_audio = False
+        self.sending_audio = False
 
     def setup_audio_reception(self):
         try:
-            self.socket_audio.setsockopt(socket_module.SOL_SOCKET, socket_module.SO_REUSEADDR, 1)
-            self.socket_audio.bind(("0.0.0.0", self.port_audio))
+            self.socket_audio_out.setsockopt(socket_module.SOL_SOCKET, socket_module.SO_REUSEADDR, 1)
+            self.socket_audio_out.bind(("0.0.0.0", self.port_audio_out))
             self.audio = pyaudio.PyAudio()
-            self.stream = self.audio.open(
+            self.stream_in = self.audio.open(
                 format=FORMAT,
                 channels=CHANNELS,
                 rate=RATE,
@@ -37,16 +41,49 @@ class Client:
         except Exception as e:
             print(f"Erreur lors de la configuration audio: {e}")
 
+    def setup_audio_emission(self):
+        try:
+            if not self.audio:
+                self.audio = pyaudio.PyAudio()
+            self.stream_out = self.audio.open(
+                format=FORMAT,
+                channels=CHANNELS,
+                rate=RATE,
+                input=True,
+                frames_per_buffer=CHUNK
+            )
+            self.sending_audio = True
+            threading.Thread(target=self.envoyer_audio, daemon=True).start()
+        except Exception as e:
+            print(f"Erreur lors de la configuration d'émission audio: {e}")
+
     def recevoir_audio(self):
         while self.receiving_audio:
             try:
-                data, addr = self.socket_audio.recvfrom(65535)
-                if data and self.stream:
-                    self.stream.write(data)
+                data, addr = self.socket_audio_out.recvfrom(65535)
+                if data and self.stream_in:
+                    self.stream_in.write(data)
             except Exception as e:
                 if self.receiving_audio:
-                    print(f"Erreur réception audio: {e}")
+                    pass
                 break
+
+    def envoyer_audio(self):
+        while self.sending_audio:
+            try:
+                data = self.stream_out.read(CHUNK, exception_on_overflow=False)
+                self.socket_audio_in.sendto(data, (self.ip_du_serveur, self.port_audio_in))
+            except Exception as e:
+                if self.sending_audio:
+                    print(f"Erreur envoi audio: {e}")
+                break
+
+    def arreter_emission_audio(self):
+        self.sending_audio = False
+        if self.stream_out:
+            self.stream_out.stop_stream()
+            self.stream_out.close()
+            self.stream_out = None
 
     def send_message(self, message):
         try:
@@ -105,9 +142,11 @@ class Client:
             self.app_ref.reset_speak_request_button()
 
     def reset_speak(self):
+        self.arreter_emission_audio()
         self.bouton_demander_retourner_style_defaut()
 
     def arreter_de_parler(self):
+        self.arreter_emission_audio()
         print("Vous avez perdu la parole.")
         if self.app_ref:
             self.bouton_demander_retourner_style_defaut()
@@ -115,6 +154,7 @@ class Client:
             self.app_ref.update_status(False)
 
     def parler(self):
+        self.setup_audio_emission()
         print("Vous avez la parole !")
         if self.app_ref:
             self.bouton_demander_style_vous_parler()
@@ -141,12 +181,18 @@ class Client:
 
     def nettoyer(self):
         self.receiving_audio = False
-        if self.stream:
-            self.stream.stop_stream()
-            self.stream.close()
+        self.sending_audio = False
+        if self.stream_in:
+            self.stream_in.stop_stream()
+            self.stream_in.close()
+        if self.stream_out:
+            self.stream_out.stop_stream()
+            self.stream_out.close()
         if self.audio:
             self.audio.terminate()
-        if self.socket_audio:
-            self.socket_audio.close()
+        if self.socket_audio_out:
+            self.socket_audio_out.close()
+        if self.socket_audio_in:
+            self.socket_audio_in.close()
         if self.socket:
             self.socket.close()
