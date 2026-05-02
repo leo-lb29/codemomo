@@ -13,7 +13,7 @@ stream = audio.open(format=pyaudio.paInt16, channels=1,
 
 while True:
     try:
-        data, addr = sock.recvfrom(65535)
+        data, addr = sock.recvfrom(1024)
         if not data:
             break
         stream.write(data)
