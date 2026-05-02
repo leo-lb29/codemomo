@@ -81,8 +81,11 @@ class Client:
     def arreter_emission_audio(self):
         self.sending_audio = False
         if self.stream_out:
-            self.stream_out.stop_stream()
-            self.stream_out.close()
+            try:
+                self.stream_out.stop_stream()
+                self.stream_out.close()
+            except:
+                pass
             self.stream_out = None
 
     def send_message(self, message):
