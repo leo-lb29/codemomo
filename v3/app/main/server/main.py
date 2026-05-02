@@ -143,7 +143,7 @@ class Host(App):
                 try:
                     if self.serveur.host_is_speaking:
                         data = stream.read(1024, exception_on_overflow=False)
-                        socket_broadcast.sendto(data, ("192.168.1.255", 5002))
+                        socket_broadcast.sendto(data, ("127.0.0.1", 5002))
                     else:
                         stream.read(1024, exception_on_overflow=False)
                 except:
