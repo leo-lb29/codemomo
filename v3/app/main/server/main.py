@@ -59,7 +59,10 @@ class ConfirmSpeakScreen(Screen):
 
     def on_button_pressed(self, event: DialogButton.Pressed) -> None:
         if event.button.id == "btn_confirm_accept":
+            self.host_app.arreter_audio_host()
             self.host_app.serveur.donner_la_parole(self.client_id)
+            self.host_app.query_one("#btn_host_speak", Button).variant = "default"
+            self.host_app.query_one("#btn_host_speak", Button).label = "Prendre la parole"
             self.dismiss()
         elif event.button.id == "btn_confirm_reject":
             self.host_app.serveur.refuser_parole(self.client_id)
@@ -262,6 +265,7 @@ class Host(App):
                 if self.serveur.speaker_id == client_id:
                     self.serveur.retirer_la_parole(client_id)
                 else:
+                    self.arreter_audio_host()
                     self.query_one("#btn_host_speak",
                                    Button).variant = "default"
                     self.query_one("#btn_host_speak",
