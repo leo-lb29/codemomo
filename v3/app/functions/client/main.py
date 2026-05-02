@@ -39,7 +39,7 @@ class Client:
             self.receiving_audio = True
             threading.Thread(target=self.recevoir_audio, daemon=True).start()
         except Exception as e:
-            print(f"Erreur lors de la configuration audio: {e}")
+            pass
 
     def setup_audio_emission(self):
         try:
@@ -55,7 +55,7 @@ class Client:
             self.sending_audio = True
             threading.Thread(target=self.envoyer_audio, daemon=True).start()
         except Exception as e:
-            print(f"Erreur lors de la configuration d'émission audio: {e}")
+            pass
 
     def recevoir_audio(self):
         while self.receiving_audio:
@@ -71,11 +71,9 @@ class Client:
     def envoyer_audio(self):
         while self.sending_audio:
             try:
-                data = self.stream_out.read(CHUNK, exception_on_overflow=False) # type: ignore
+                data = self.stream_out.read(CHUNK, exception_on_overflow=False)
                 self.socket_audio_in.sendto(data, (self.ip_du_serveur, self.port_audio_in))
             except Exception as e:
-                if self.sending_audio:
-                    print(f"Erreur envoi audio: {e}")
                 break
 
     def arreter_emission_audio(self):
@@ -96,7 +94,7 @@ class Client:
             message_encoded = message.encode()
             self.socket.send(message_encoded)
         except Exception as e:
-            print(f"Erreur lors de l'envoi: {e}")
+            pass
 
     def se_connecter(self, prenom):
         self.prenom = prenom
@@ -121,7 +119,6 @@ class Client:
                 else:
                     break
             except Exception as e:
-                print(f"Erreur de réception: {e}")
                 break
 
     def demander_la_parole(self):
@@ -131,14 +128,12 @@ class Client:
         pass
 
     def parole_acceptee(self):
-        print("Votre demande de parole a été acceptée.")
         if self.app_ref:
             self.app_ref.add_log(
                 "[green]Votre demande de parole a été acceptée.[/]")
             self.app_ref.reset_speak_request_button()
 
     def parole_refusea(self):
-        print("Votre demande de parole a été refusée.")
         if self.app_ref:
             self.app_ref.add_log(
                 "[red]Votre demande de parole a été refusée.[/]")
@@ -150,7 +145,6 @@ class Client:
 
     def arreter_de_parler(self):
         self.arreter_emission_audio()
-        print("Vous avez perdu la parole.")
         if self.app_ref:
             self.bouton_demander_retourner_style_defaut()
             self.app_ref.add_log("[yellow]Vous avez perdu la parole.[/]")
@@ -158,7 +152,6 @@ class Client:
 
     def parler(self):
         self.setup_audio_emission()
-        print("Vous avez la parole !")
         if self.app_ref:
             self.bouton_demander_style_vous_parler()
             self.app_ref.add_log("[green]Vous avez la parole ![/]")

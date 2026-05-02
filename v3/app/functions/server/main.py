@@ -46,7 +46,6 @@ class Serveur:
         try:
             message = message_text.encode()
             client["socket"].send(message)
-            print(f"Message '{message_text}' envoyé à {client['prenom']}")
         except (ConnectionAbortedError, ConnectionResetError, BrokenPipeError):
             if client in self.clients:
                 self.clients.remove(client)
@@ -63,7 +62,6 @@ class Serveur:
     def _handle_client(self, conn, addr):
         try:
             data = conn.recv(1024).decode()
-            print(f"Message reçu: {data}")
 
             if data.startswith("PRENOM:"):
                 prenom = data.split(":")[1]
@@ -71,25 +69,24 @@ class Serveur:
                 self.client_id_counter += 1
                 self.clients.append(
                     {"id": client_id, "addr": addr, "prenom": prenom, "socket": conn})
-                print(f"Prénom: {prenom}")
-                print(f"Clients connectés: {[c['prenom'] for c in self.clients]}")
 
                 while True:
                     try:
                         data = conn.recv(1024).decode()
                         if data == "REQUEST_TO_SPEAK":
                             self.clients_demandes_parole.append((client_id, prenom))
-                            print(f"Demande de parole: {prenom}")
                     except:
                         break
 
                 self.clients = [c for c in self.clients if c["id"] != client_id]
                 self.clients_demandes_parole = [(cid, p) for cid, p in self.clients_demandes_parole if cid != client_id]
-                print(f"Client {prenom} déconnecté")
             else:
                 conn.close()
         except Exception as e:
-            print(f"Erreur client: {e}")
+            try:
+                conn.close()
+            except:
+                pass
 
     def on_demande_la_parole(self):
         pass
