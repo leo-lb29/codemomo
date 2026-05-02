@@ -89,7 +89,11 @@ class Host(App):
         self.serveur = Serveur()
         self.audio = None
         self.stream_out = None
+        self.stream_in = None
         self.sending_audio = False
+        self.receiving_audio = False
+        self.socket_audio_in = None
+        self.socket_audio_out = None
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -122,10 +126,40 @@ class Host(App):
             target=self.serveur.demarrer_serveur, daemon=True).start()
 
         self.serveur.demarrer_reception_audio()
+        self.setup_host_audio_reception()
         self.set_interval(0.5, self.update_tables)
 
     def add_log(self, text: str):
         self.query_one(RichLog).write(text)
+
+    def setup_host_audio_reception(self):
+        try:
+            self.socket_audio_out = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, proto=socket.IPPROTO_UDP)
+            self.socket_audio_out.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            self.socket_audio_out.bind(("0.0.0.0", PORT_AUDIO_OUT))
+            self.audio = pyaudio.PyAudio()
+            self.stream_in = self.audio.open(
+                format=pyaudio.paInt16,
+                channels=1,
+                rate=44100,
+                output=True,
+                frames_per_buffer=1024
+            )
+            self.receiving_audio = True
+            threading.Thread(target=self._recevoir_audio_host, daemon=True).start()
+        except Exception as e:
+            print(f"Erreur setup audio réception host: {e}")
+
+    def _recevoir_audio_host(self):
+        while self.receiving_audio:
+            try:
+                data, addr = self.socket_audio_out.recvfrom(65535)
+                if data and self.stream_in:
+                    self.stream_in.write(data)
+            except Exception as e:
+                if self.receiving_audio:
+                    pass
+                break
 
     def setup_host_audio(self):
         try:
@@ -157,8 +191,11 @@ class Host(App):
     def arreter_audio_host(self):
         self.sending_audio = False
         if self.stream_out:
-            self.stream_out.stop_stream()
-            self.stream_out.close()
+            try:
+                self.stream_out.stop_stream()
+                self.stream_out.close()
+            except:
+                pass
             self.stream_out = None
 
     def update_tables(self):
@@ -182,8 +219,11 @@ class Host(App):
         table_demandes = self.query_one('#liste-demandes', DataTable)
         table_demandes.clear()
         for client_id, prenom in self.serveur.clients_demandes_parole:
-            table_demandes.add_row(
-                str(client_id), prenom, "", key=str(client_id))
+            try:
+                table_demandes.add_row(
+                    str(client_id), prenom, "", key=str(client_id))
+            except:
+                pass
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "btn_host_speak":
