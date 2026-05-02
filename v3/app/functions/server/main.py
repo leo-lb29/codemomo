@@ -24,6 +24,7 @@ class Serveur:
         self.client_udp_addresses = {}
         self.host_is_speaking = False
         self.audio_buffer = {}
+        self.udp_addr_to_client_id = {}
 
     def demarrer_serveur(self):
         self.socket_audio_recv.bind(("0.0.0.0", self.port_audio))
@@ -46,7 +47,17 @@ class Serveur:
                 data, addr = self.socket_audio_recv.recvfrom(1024)
                 if not data:
                     continue
-                client_id = self._get_client_id_by_addr(addr)
+
+                with self.lock:
+                    if addr not in self.udp_addr_to_client_id and self.speaker_id is not None:
+                        for conn, tcp_addr, cid, prenom in self.clients:
+                            if cid == self.speaker_id:
+                                self.udp_addr_to_client_id[addr] = cid
+                                print(f"[AUDIO] Enregistré UDP {addr} -> client {cid}")
+                                break
+
+                    client_id = self.udp_addr_to_client_id.get(addr)
+
                 print(f"[AUDIO] Reçu de {addr}, client_id={client_id}, speaker_id={self.speaker_id}")
                 if client_id == self.speaker_id and not self.host_is_speaking:
                     self.socket_audio_send.sendto(data, ("127.0.0.1", 5002))
@@ -103,6 +114,7 @@ class Serveur:
                         (c, p) for c, p in self.clients_demandes_parole if c != client_id]
                     if client_id in self.client_addresses:
                         del self.client_addresses[client_id]
+                    self.udp_addr_to_client_id = {k: v for k, v in self.udp_addr_to_client_id.items() if v != client_id}
             conn.close()
 
 
