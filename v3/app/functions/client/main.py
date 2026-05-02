@@ -39,6 +39,7 @@ class Client:
     def setup_audio(self):
         self.socket_audio_recv.setsockopt(socket_module.SOL_SOCKET, socket_module.SO_REUSEADDR, 1)
         self.socket_audio_recv.bind(("0.0.0.0", 5002))
+        print("[SETUP AUDIO] Sockets bindés sur port 5002")
         audio = pyaudio.PyAudio()
 
         stream_send = audio.open(format=pyaudio.paInt16, channels=1,
@@ -52,9 +53,12 @@ class Client:
                     data = stream_send.read(1024, exception_on_overflow=False)
                     if self.is_speaking:
                         self.socket_audio_send.sendto(data, (self.ip_du_serveur, self.port_audio))
-                        print(f"[AUDIO SEND] Envoi audio au serveur")
+                        if self.app_ref:
+                            self.app_ref.add_log("[cyan][AUDIO SEND] Envoi audio au serveur[/]")
                 except Exception as e:
                     print(f"Erreur envoi audio: {e}")
+                    if self.app_ref:
+                        self.app_ref.add_log(f"[red]Erreur envoi audio: {e}[/]")
 
         def recevoir_audio():
             try:
@@ -64,11 +68,15 @@ class Client:
                         break
                     if not self.is_speaking:
                         stream_recv.write(data)
-                        print(f"[AUDIO RECV] Audio reçu et joué")
+                        if self.app_ref:
+                            self.app_ref.add_log("[cyan][AUDIO RECV] Audio reçu et joué[/]")
                     else:
-                        print(f"[AUDIO RECV] Audio reçu mais rejeté (en train de parler)")
+                        if self.app_ref:
+                            self.app_ref.add_log("[yellow][AUDIO RECV] Audio reçu mais rejeté (en train de parler)[/]")
             except Exception as e:
                 print(f"Erreur réception audio: {e}")
+                if self.app_ref:
+                    self.app_ref.add_log(f"[red]Erreur réception audio: {e}[/]")
             finally:
                 stream_send.stop_stream()
                 stream_send.close()
