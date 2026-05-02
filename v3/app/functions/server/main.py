@@ -101,6 +101,7 @@ class Serveur:
         if self.clients and any(c["id"] == id_client for c in self.clients):
             client = next(c for c in self.clients if c["id"] == id_client)
             self._envoyer_message(client, "SPEAK_REJECTED")
+            self.clients_demandes_parole = [(cid, p) for cid, p in self.clients_demandes_parole if cid != id_client]
 
     def reset_speak(self):
         for client in self.clients:
