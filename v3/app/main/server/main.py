@@ -148,7 +148,7 @@ class Host(App):
             self.receiving_audio = True
             threading.Thread(target=self._recevoir_audio_host, daemon=True).start()
         except Exception as e:
-            print(f"Erreur setup audio réception host: {e}")
+            pass
 
     def _recevoir_audio_host(self):
         while self.receiving_audio:
@@ -175,7 +175,7 @@ class Host(App):
             self.sending_audio = True
             threading.Thread(target=self._envoyer_audio_host, daemon=True).start()
         except Exception as e:
-            print(f"Erreur setup audio host: {e}")
+            pass
 
     def _envoyer_audio_host(self):
         socket_audio_in = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, proto=socket.IPPROTO_UDP)

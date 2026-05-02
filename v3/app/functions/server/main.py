@@ -56,7 +56,6 @@ class Serveur:
 
         while True:
             conn, addr = self.socket.accept()
-            print(f"Connexion reçue de {addr}")
             threading.Thread(target=self._handle_client, args=(conn, addr), daemon=True).start()
 
     def _handle_client(self, conn, addr):
@@ -147,7 +146,7 @@ class Serveur:
             self.receiving_audio = True
             threading.Thread(target=self._recevoir_et_rediffuser_audio, daemon=True).start()
         except Exception as e:
-            print(f"Erreur lors du démarrage de la réception audio: {e}")
+            pass
 
     def _recevoir_et_rediffuser_audio(self):
         self.socket_audio_out.setsockopt(socket_module.SOL_SOCKET, socket_module.SO_BROADCAST, 1)

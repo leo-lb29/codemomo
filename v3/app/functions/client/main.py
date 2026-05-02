@@ -5,6 +5,20 @@ from textual.widgets import Button
 from typing import Any
 from config import PORT_AUDIO_OUT, PORT_AUDIO_IN, PORT_CONTROL, CHUNK, FORMAT, CHANNELS, RATE
 
+try:
+    from ctypes import *
+    ERROR_HANDLER_FUNC = CFUNCTYPE(None, c_char_p, c_int, c_char_p, c_int, c_char_p)
+    def py_error_handler(filename, line, function, err, fmt):
+        pass
+    c_error_handler = ERROR_HANDLER_FUNC(py_error_handler)
+    try:
+        asound = cdll.LoadLibrary('libasound.so.2')
+        asound.snd_lib_error_set_handler(c_error_handler)
+    except:
+        pass
+except:
+    pass
+
 
 class Client:
     def __init__(self, ip_du_serveur="192.168.10.1"):
