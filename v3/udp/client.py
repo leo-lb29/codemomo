@@ -5,7 +5,7 @@ import pyaudio
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, proto=socket.IPPROTO_UDP)
 sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 sock.bind(("0.0.0.0", 5002))
-print("Client UDP en attente sur 0.0.0.0:5002")
+print("Client UDP en attente sur 0.0.0.0:5001")
 
 audio = pyaudio.PyAudio()
 stream = audio.open(format=pyaudio.paInt16, channels=1,
@@ -13,7 +13,7 @@ stream = audio.open(format=pyaudio.paInt16, channels=1,
 
 while True:
     try:
-        data, addr = sock.recvfrom(1024)
+        data, addr = sock.recvfrom(1024 * 2)
         if not data:
             break
         stream.write(data)
