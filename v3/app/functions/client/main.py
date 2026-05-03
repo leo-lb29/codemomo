@@ -205,4 +205,5 @@ class Client:
         if self.socket_audio_in:
             self.socket_audio_in.close()
         if self.socket:
-            self.socket.close()
+            self.socket.close()f.app_ref.query_one("#btn_request_speak",
+                                   Button).label = "Demander la parole"
