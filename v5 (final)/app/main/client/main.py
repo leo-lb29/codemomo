@@ -15,17 +15,17 @@ class Client(App):
         self.is_speaker = False
         self.client_socket = None
         self.mic_active = True
-        self.prenom = None
+        self.pseudo = None
         self.client = ClientFunction(host_addr)
         self.client.app_ref = self
 
     def compose(self) -> ComposeResult:
         yield Header()
-        with Vertical(id="container-prenom"):
-            yield Static("Entrez votre pseudo:", id="label-prenom")
-            yield Input(id="prenom-input", placeholder="Pseudo")
-            yield Button("Continuer", id="btn_prenom_continue")
-            yield Static("", id="error-prenom")
+        with Vertical(id="container-pseudo"):
+            yield Static("Entrez votre pseudo:", id="label-pseudo")
+            yield Input(id="pseudo-input", placeholder="Pseudo")
+            yield Button("Continuer", id="btn_pseudo_continue")
+            yield Static("", id="error-pseudo")
 
         with Vertical(id="container-main"):
             with Horizontal(id="layout-principal"):
@@ -38,17 +38,17 @@ class Client(App):
                     yield RichLog(id="zone-logs", highlight=True, markup=True)
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id == "btn_prenom_continue":
-            prenom_input = self.query_one("#prenom-input", Input)
-            if prenom_input.value.strip():
-                self.prenom = prenom_input.value
-                self.client.se_connecter(self.prenom)
+        if event.button.id == "btn_pseudo_continue":
+            pseudo_input = self.query_one("#pseudo-input", Input)
+            if pseudo_input.value.strip():
+                self.pseudo = pseudo_input.value
+                self.client.se_connecter(self.pseudo)
                 self.client_socket = True
-                self.query_one("#container-prenom").styles.display = "none"
+                self.query_one("#container-pseudo").styles.display = "none"
                 self.query_one("#container-main").styles.display = "block"
                 self.update_status(False)
             else:
-                self.query_one("#error-prenom").update("Veuillez entrer votre prénom") # type: ignore
+                self.query_one("#error-pseudo").update("Veuillez entrer votre pseudo") # type: ignore
 
         elif event.button.id == "btn_quit":
             self.exit()

@@ -100,15 +100,15 @@ class Host(App):
         table_client.clear()
         for client in self.serveur.clients:
             status = "[+] le client parle" if self.serveur.speaker_id == client["id"] else "[-] le client est en écoute"
-            table_client.add_row(str(client["id"]), client["prenom"], str(client["addr"][0]), status, key=str(client["id"]))
+            table_client.add_row(str(client["id"]), client["pseudo"], str(client["addr"][0]), status, key=str(client["id"]))
 
     def refresh_demandes_table(self):
         table_demandes = self.query_one('#liste-demandes', DataTable)
         table_demandes.clear()
-        for client_id, prenom, ip in self.serveur.clients_demandes_parole:
+        for client_id, pseudo, ip in self.serveur.clients_demandes_parole:
             try:
                 table_demandes.add_row(
-                    str(client_id), prenom, str(ip[0]), key=str(client_id))
+                    str(client_id), pseudo, str(ip[0]), key=str(client_id))
             except:
                 pass
 

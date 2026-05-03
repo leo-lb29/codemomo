@@ -10,7 +10,7 @@ class Client:
         self.port_control = PORT_CONTROL
         self.ip_du_serveur = ip_du_serveur
         self.socket = socket_module.socket(socket_module.AF_INET, socket_module.SOCK_STREAM, proto=socket_module.IPPROTO_TCP)
-        self.prenom = None
+        self.psuedo = None
         self.connected = False
         self.is_speaker = False
         self.mic_muted = False
@@ -29,9 +29,9 @@ class Client:
         except Exception:
             pass
 
-    def se_connecter(self, prenom):
-        self.prenom = prenom
-        self.send_message(f"PRENOM:{prenom}")
+    def se_connecter(self, psuedo):
+        self.psuedo = psuedo
+        self.send_message(f"PSEUDO:{psuedo}")
         self._demarrer_audio()
         threading.Thread(target=self.recevoir_message, daemon=True).start()
 

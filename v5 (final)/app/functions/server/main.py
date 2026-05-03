@@ -60,11 +60,11 @@ class Serveur:
     def handle_client(self, conn, addr):
         try:
             data = conn.recv(1024).decode()
-            if data.startswith("PRENOM:"):
-                prenom = data.split(":")[1]
+            if data.startswith("PSEUDO:"):
+                pseudo = data.split(":")[1]
                 client_id = self.client_id_counter
                 self.client_id_counter += 1
-                self.clients.append({"id": client_id, "addr": addr, "prenom": prenom, "socket": conn})
+                self.clients.append({"id": client_id, "addr": addr, "pseudo": pseudo, "socket": conn})
 
                 while True:
                     try:
@@ -72,7 +72,7 @@ class Serveur:
                         if not data:
                             break
                         if data == "REQUEST_TO_SPEAK":
-                            self.clients_demandes_parole.append((client_id, prenom, addr))
+                            self.clients_demandes_parole.append((client_id, pseudo, addr))
                     except:
                         break
 
