@@ -1,15 +1,9 @@
 from typing import Any
 
-from textual.widgets import Static, Button as DialogButton
-from textual.containers import Vertical as VerticalContainer
-from textual.screen import Screen
-from textual.widgets import Button, DataTable, Header, Footer, RichLog
-from textual.containers import Horizontal, Vertical
-from textual.app import App, ComposeResult
+from textual.widgets import Button
 import threading
 import socket as socket_module
 import time
-import pyaudio
 
 from config import (
     PORT_CONTROL, PORT_AUDIO_BROADCAST, PORT_AUDIO_CLIENT,

@@ -6,7 +6,7 @@ from textual.screen import Screen
 from textual.containers import Vertical as VerticalContainer
 from textual.widgets import Static, Button as DialogButton
 
-from app.functions.server.main import Serveur
+from app.classes.server.main import Serveur
 from config import CSS_CONFIRM_SPEAK_SCREEN, CSS_HOST, SUB_TITLE_HOST, TITLE_HOST
 
 

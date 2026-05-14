@@ -1,7 +1,7 @@
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical
 from textual.widgets import Button, Header, Static, RichLog, Input
-from app.functions.client.main import Client as ClientFunction
+from app.classes.client.main import Client as ClientFunction
 from config import CSS_CLIENT, TITLE_CLIENT, SUB_TITLE_CLIENT
 
 class Client(App):

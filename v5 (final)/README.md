@@ -1,8 +1,8 @@
-# Code application de conférence
+# Application pour système de conférence
 
 ## Table des matières
 
-- [Code application de conférence](#code-application-de-conférence)
+- [Application pour système de conférence](#application-pour-système-de-conférence)
   - [Table des matières](#table-des-matières)
   - [Arborescence du projet](#arborescence-du-projet)
   - [Installation](#installation)
@@ -50,13 +50,13 @@
 
 ### Créer un environnement python
 
-Linux/Mac :
+Linux :
 
 ```bash
 python3 -m venv .venv
 ```
 
-windows : 
+Windows : 
 
 ```bash
 python -m venv .venv
@@ -64,13 +64,13 @@ python -m venv .venv
 
 ### Lancer l'environnement virtuel
 
-Linux/Mac :
+Linux :
 
 ```bash
 source .venv/bin/activate
 ```
 
-windows : 
+Windows : 
 
 ```bash
 .venv\Scripts\activate
